@@ -6,11 +6,15 @@ import {Hooks} from "../lib/v4-core/src/libraries/Hooks.sol";
 import {IPoolManager} from "../lib/v4-core/src/interfaces/IPoolManager.sol";
 import {PoolKey} from "../lib/v4-core/src/types/PoolKey.sol";
 import {PoolId, PoolIdLibrary} from "../lib/v4-core/src/types/PoolId.sol";
-import {BalanceDelta} from "../lib/v4-core/src/types/BalanceDelta.sol";
+import {toBalanceDelta, BalanceDelta, BalanceDeltaLibrary} from "../lib/v4-core/src/types/BalanceDelta.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "../lib/v4-core/src/types/BeforeSwapDelta.sol";
 import {BaseClass} from "./BaseClass.sol";
 
+int256 constant PRECISION = 1e18;
+
 contract Slippage is BaseClass {
+    using BalanceDeltaLibrary for BalanceDelta;
+
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
     struct DeltaTokens {
@@ -52,8 +56,8 @@ contract Slippage is BaseClass {
     // NOTE: see IHooks.sol for function documentation
     // -----------------------------------------------
 
-    function _calcLiquidityCoef() internal returns (uint256) {
-        return uint256(1e18);
+    function _calcLiquidityCoef() internal returns (int256) {
+        return 1e18;
     }
 
     function _beforeSwap(
@@ -106,30 +110,32 @@ contract Slippage is BaseClass {
 
         userDelta[usr] = globalDelta;
 
-        totalLiquidity += params.liquidityDelta.toInt128();
+        totalLiquidity += params.liquidityDelta;
 
         return BaseHook.beforeAddLiquidity.selector;
     }
+
+
 
     function _afterRemoveLiquidity(
         address usr,
         PoolKey calldata key,
         IPoolManager.ModifyLiquidityParams calldata params,
         bytes calldata data
-    ) internal virtual returns (bytes4, BalanceDelta) {
+    )  internal virtual override returns (bytes4, BalanceDelta) {
         super._afterRemoveLiquidity(usr, key, params, data);
 
-        totalLiquidity += params.liquidityDelta.toInt128();
+        totalLiquidity += params.liquidityDelta;
 
-        BalanceDelta delta = BalanceDelta.wrap(params);
+        bytes memory parameter = abi.encode(params);
 
-        int256 amount0 = delta.amount0() +
-            userDelta[usr].amount0 -
-            globalDelta.amount0;
-        int256 amount1 = delta.amount1() +
-            userDelta[usr].amount1 -
-            globalDelta.amount1;
+        BalanceDelta delta = abi.decode(parameter, (BalanceDelta));
 
-        return BaseHook.beforeRemoveLiquidity.selector;
+        int256 amount0 = int256(delta.amount0()) + (userDelta[usr].token0 - globalDelta.token0) * params.liquidityDelta / PRECISION;
+        int256 amount1 =  int256(delta.amount1()) + (userDelta[usr].token1 - globalDelta.token1) * params.liquidityDelta / PRECISION;
+
+
+        BalanceDelta newDelta = toBalanceDelta(int128(amount0), int128(amount1));
+        return (BaseHook.beforeRemoveLiquidity.selector, newDelta);
     }
 }
