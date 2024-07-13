@@ -89,24 +89,24 @@ abstract contract BaseClass is BaseHook {
     ) external override returns (bytes4) {
         return _beforeAddLiquidity(usr, key, params, data);
     }
-    function afterAddLiquidity(
-        address usr,
-        PoolKey calldata key,
-        IPoolManager.ModifyLiquidityParams calldata parm,
-        BalanceDelta delta,
-        bytes calldata data
-    ) external override returns (bytes4, BalanceDelta) {
-        return _afterAddLiquidity(usr, key, parm, delta, data);
-    }
+    // function afterAddLiquidity(
+    //     address usr,
+    //     PoolKey calldata key,
+    //     IPoolManager.ModifyLiquidityParams calldata parm,
+    //     BalanceDelta delta,
+    //     bytes calldata data
+    // ) external override returns (bytes4, BalanceDelta) {
+    //     return _afterAddLiquidity(usr, key, parm, delta, data);
+    // }
 
-    function beforeRemoveLiquidity(
-        address usr,
-        PoolKey calldata key,
-        IPoolManager.ModifyLiquidityParams calldata params,
-        bytes calldata data
-    ) external override returns (bytes4) {
-        return _beforeRemoveLiquidity(usr, key, params, data);
-    }
+    // function beforeRemoveLiquidity(
+    //     address usr,
+    //     PoolKey calldata key,
+    //     IPoolManager.ModifyLiquidityParams calldata params,
+    //     bytes calldata data
+    // ) external override returns (bytes4) {
+    //     return _beforeRemoveLiquidity(usr, key, params, data);
+    // }
 
     function afterRemoveLiquidity(
         address usr,

@@ -27,11 +27,11 @@ contract Slippage is BaseClass {
     using SafeCast for *;
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
-    uint256 startBlock;
-    uint256 endBlock;
+    uint256 startTime;
+    uint256 endTime;
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {
-        startBlock = 1000;
-        endBlock = 2000;
+        startTime = 1000;
+        endTime = 2000;
     }
 
     // delta
@@ -72,8 +72,8 @@ contract Slippage is BaseClass {
 
     function _calcLiquidityCoef(int256 price) internal view returns (int256) {
         int256 currentBlock = int256(block.timestamp);
-        int256 marketDuration = int256(endBlock) - int256(startBlock);
-        int256 percentComplete = ((currentBlock - int256(startBlock)) * 1e18) /
+        int256 marketDuration = int256(endTime) - int256(startTime);
+        int256 percentComplete = ((currentBlock - int256(startTime)) * 1e18) /
             marketDuration;
         int256 initialPrice = 5e17; // 0.5 in 18 decimal fixed-point
 
@@ -102,7 +102,7 @@ contract Slippage is BaseClass {
         super._beforeSwap(usr, key, params, data);
         int256 price = 5e17;
         int256 liquidityCoef = _calcLiquidityCoef(price);
-        int256 specifiedDelta = params.amountSpecified * liquidityCoef;
+        int256 specifiedDelta = params.amountSpecified * PRECISION / liquidityCoef;
         BeforeSwapDelta beforeSwapDelta = toBeforeSwapDelta(
             int128(specifiedDelta),
             0
@@ -115,19 +115,14 @@ contract Slippage is BaseClass {
 
         require(specifiedDelta < 0, "must be input swap");
 
-        poolManager.mint(
-            usr,
-            key.currency0.toId() /* is this correct ?*/,
-            uint256(-specifiedDelta)
-        );
-
-
         return (
             BaseHook.beforeSwap.selector,
             beforeSwapDelta,
             uint24(uint256(scaledFee))
         );
     }
+
+    event Logging(int256 amount0Delta, int256 amount1Delta);
 
     function _afterSwap(
         address usr,
@@ -154,9 +149,10 @@ contract Slippage is BaseClass {
             amount0Delta = amount0 - amount0Deflated;
             amount1Delta = amount1 - amount1Deflated;
         }
-        poolManager.burn(usr, key.currency0.toId(), uint256(-amount0Delta));
+        emit Logging(amount0Delta, amount1Delta);
+        // poolManager.mint(usr, key.currency1.toId(), int128(-amount0Delta)); todo this is negative and would underflow
 
-        return (BaseHook.afterSwap.selector, int128(amount1Delta));
+        return (BaseHook.afterSwap.selector, int128(-amount0Delta));
     }
 
     function _deflateAmounts(
@@ -166,8 +162,8 @@ contract Slippage is BaseClass {
         int256 price = 5e17;
         int256 liquidityCoef = _calcLiquidityCoef(price);
 
-        int256 amount0Deflated = (amount0 * PRECISION) / liquidityCoef;
-        int256 amount1Deflated = (amount1 * PRECISION) / liquidityCoef;
+        int256 amount0Deflated = (amount0 * PRECISION) * liquidityCoef;
+        int256 amount1Deflated = (amount1 * PRECISION) * liquidityCoef;
 
         return (amount0Deflated, amount1Deflated);
     }
@@ -219,6 +215,8 @@ contract Slippage is BaseClass {
             int128(amount0),
             int128(amount1)
         );
+
+        // TODO burn some tokens from the user
 
         // up liquidity
         totalLiquidity += params.liquidityDelta;
