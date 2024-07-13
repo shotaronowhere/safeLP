@@ -118,18 +118,15 @@ contract Slippage is BaseClass {
 
 
     function _afterRemoveLiquidity(
-        address usr,
+         address usr,
         PoolKey calldata key,
         IPoolManager.ModifyLiquidityParams calldata params,
+        BalanceDelta delta,
         bytes calldata data
     )  internal virtual override returns (bytes4, BalanceDelta) {
-        super._afterRemoveLiquidity(usr, key, params, data);
+        super._afterRemoveLiquidity(usr, key, params, delta, data);
 
         totalLiquidity += params.liquidityDelta;
-
-        bytes memory parameter = abi.encode(params);
-
-        BalanceDelta delta = abi.decode(parameter, (BalanceDelta));
 
         int256 amount0 = int256(delta.amount0()) + (userDelta[usr].token0 - globalDelta.token0) * params.liquidityDelta / PRECISION;
         int256 amount1 =  int256(delta.amount1()) + (userDelta[usr].token1 - globalDelta.token1) * params.liquidityDelta / PRECISION;
