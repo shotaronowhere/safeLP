@@ -108,8 +108,8 @@ contract Slippage is BaseClass {
             0
         );
 
-        int256 scaledFee = int256(uint256(key.fee)) / liquidityCoef;
-
+        int256 scaledFee = int256(uint256(key.fee)) * 1e18 / liquidityCoef;
+        require(scaledFee < int256(uint256(type(uint24).max)), "overflow");
         // uint256 BeforeSwapDelta = BeforeSwapDeltaLibrary.toBeforeSwapDelta();
         // params.amountSpecified = params.amountSpecified * liquidityCoef;
 
@@ -120,6 +120,7 @@ contract Slippage is BaseClass {
             key.currency0.toId() /* is this correct ?*/,
             uint256(-specifiedDelta)
         );
+
 
         return (
             BaseHook.beforeSwap.selector,
