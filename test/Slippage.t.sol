@@ -32,7 +32,8 @@ contract SlippageTest is Test, Deployers {
         address flags = address(
             uint160(
                 Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG
-                    | Hooks.BEFORE_REMOVE_LIQUIDITY_FLAG
+                   /* | Hooks.AFTER_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_REMOVE_LIQUIDITY_FLAG */
+                    | Hooks.AFTER_REMOVE_LIQUIDITY_FLAG 
             ) ^ (0x4444 << 144) // Namespace the hook to avoid collisions
         );
         deployCodeTo("Slippage.sol:Slippage", abi.encode(manager), flags);

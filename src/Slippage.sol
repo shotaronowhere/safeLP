@@ -200,16 +200,15 @@ contract Slippage is BaseClass {
 
         // cache liquidity
         int256 liquidityRemoved = userLiquidity[usr];
-        require(params.liquidityDelta == liquidityRemoved, "Can not remove");
 
         // remove token amounts
         int256 amount0 = int256(delta.amount0()) +
             ((userDelta[usr].token0 - globalDelta.token0) *
-                params.liquidityDelta) /
+                liquidityRemoved) /
             PRECISION;
         int256 amount1 = int256(delta.amount1()) +
             ((userDelta[usr].token1 - globalDelta.token1) *
-                params.liquidityDelta) /
+                liquidityRemoved) /
             PRECISION;
         BalanceDelta newDelta = toBalanceDelta(
             int128(amount0),
@@ -220,8 +219,8 @@ contract Slippage is BaseClass {
 
         // up liquidity
         totalLiquidity += params.liquidityDelta;
-        delete userDelta[usr];
+        userLiquidity[usr] -= liquidityRemoved;
 
-        return (BaseHook.beforeRemoveLiquidity.selector, newDelta);
+        return (BaseHook.afterRemoveLiquidity.selector, newDelta);
     }
 }
