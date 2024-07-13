@@ -11,20 +11,26 @@ import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "../lib/v4-core/src/types/
 import {BaseClass} from "./BaseClass.sol";
 
 int256 constant PRECISION = 1e18;
+int24 constant MIN_TICK = -887220;
+int24 constant MAX_TICK = -MIN_TICK;
+
+struct DeltaTokens {
+    int256 token0;
+    int256 token1;
+}
+
 
 contract Slippage is BaseClass {
     using BalanceDeltaLibrary for BalanceDelta;
 
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
-    struct DeltaTokens {
-        int256 token0;
-        int256 token1;
-    }
-
+    // delta
     DeltaTokens public globalDelta;
     mapping(address => DeltaTokens) userDelta;
 
+    // liquidity
+    mapping(address => int256) userLiquidity;
     int256 totalLiquidity;
 
     function getHookPermissions()
@@ -52,9 +58,7 @@ contract Slippage is BaseClass {
             });
     }
 
-    // -----------------------------------------------
-    // NOTE: see IHooks.sol for function documentation
-    // -----------------------------------------------
+    // trading operations
 
     function _calcLiquidityCoef() internal returns (int256) {
         return 1e18;
@@ -86,16 +90,11 @@ contract Slippage is BaseClass {
         bytes calldata data
     ) internal virtual override returns (bytes4, int128) {
         super._afterSwap(usr, key, params, delta, data);
-         
 
         return (BaseHook.afterSwap.selector, 0);
     }
 
-    /// @dev Min tick for full range with tick spacing of 60
-    int24 internal constant MIN_TICK = -887220;
-    /// @dev Max tick for full range with tick spacing of 60
-    int24 internal constant MAX_TICK = -MIN_TICK;
-
+    // Liquidity Operations
     function _beforeAddLiquidity(
         address usr,
         PoolKey calldata key,
@@ -103,38 +102,50 @@ contract Slippage is BaseClass {
         bytes calldata data
     ) internal virtual override returns (bytes4) {
         super._beforeAddLiquidity(usr, key, params, data);
+        require(userLiquidity[usr] == 0, "no more liquidity");
         require(
             params.tickLower == MIN_TICK && params.tickUpper == MAX_TICK,
             "No ticks"
         );
 
+        // up liquidity
         userDelta[usr] = globalDelta;
-
         totalLiquidity += params.liquidityDelta;
 
         return BaseHook.beforeAddLiquidity.selector;
     }
 
-
-
     function _afterRemoveLiquidity(
-         address usr,
+        address usr,
         PoolKey calldata key,
         IPoolManager.ModifyLiquidityParams calldata params,
         BalanceDelta delta,
         bytes calldata data
-    )  internal virtual override returns (bytes4, BalanceDelta) {
+    ) internal virtual override returns (bytes4, BalanceDelta) {
         super._afterRemoveLiquidity(usr, key, params, delta, data);
 
+        // cache liquidity
+        int256 liquidityRemoved = userLiquidity[usr];
+        require(params.liquidityDelta == liquidityRemoved, "Can not remove");
+
+        // remove token amounts
+        int256 amount0 = int256(delta.amount0()) +
+            ((userDelta[usr].token0 - globalDelta.token0) *
+                params.liquidityDelta) /
+            PRECISION;
+        int256 amount1 = int256(delta.amount1()) +
+            ((userDelta[usr].token1 - globalDelta.token1) *
+                params.liquidityDelta) /
+            PRECISION;
+        BalanceDelta newDelta = toBalanceDelta(
+            int128(amount0),
+            int128(amount1)
+        );
+
+        // up liquidity
         totalLiquidity += params.liquidityDelta;
+        delete userDelta[usr];
 
-        int256 amount0 = int256(delta.amount0()) + (userDelta[usr].token0 - globalDelta.token0) * params.liquidityDelta / PRECISION;
-        int256 amount1 =  int256(delta.amount1()) + (userDelta[usr].token1 - globalDelta.token1) * params.liquidityDelta / PRECISION;
-
-
-        BalanceDelta newDelta = toBalanceDelta(int128(amount0), int128(amount1));
         return (BaseHook.beforeRemoveLiquidity.selector, newDelta);
     }
-
-
 }
