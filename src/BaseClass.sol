@@ -29,6 +29,14 @@ abstract contract BaseClass is BaseHook {
         bytes calldata data
     ) internal virtual returns (bytes4, int128) {}
 
+    function _afterAddLiquidity(
+        address usr,
+        PoolKey calldata key,
+        IPoolManager.ModifyLiquidityParams calldata,
+        BalanceDelta delta,
+        bytes calldata data
+    ) internal virtual returns (bytes4, BalanceDelta) {}
+
     function _beforeAddLiquidity(
         address usr,
         PoolKey calldata key,
@@ -43,14 +51,22 @@ abstract contract BaseClass is BaseHook {
         bytes calldata data
     ) internal virtual returns (bytes4) {}
 
+    function _afterRemoveLiquidity(
+        address usr,
+        PoolKey calldata key,
+        IPoolManager.ModifyLiquidityParams calldata params,
+        bytes calldata data
+    ) internal virtual returns (bytes4, BalanceDelta) {}
+
     /**
      * INTERFACES - DO NOT CHANGE *********************
      */
-    function beforeSwap(address usr, PoolKey calldata key, IPoolManager.SwapParams calldata params, bytes calldata data)
-        external
-        override
-        returns (bytes4, BeforeSwapDelta, uint24)
-    {
+    function beforeSwap(
+        address usr,
+        PoolKey calldata key,
+        IPoolManager.SwapParams calldata params,
+        bytes calldata data
+    ) external override returns (bytes4, BeforeSwapDelta, uint24) {
         return _beforeSwap(usr, key, params, data);
     }
 
@@ -72,6 +88,15 @@ abstract contract BaseClass is BaseHook {
     ) external override returns (bytes4) {
         return _beforeAddLiquidity(usr, key, params, data);
     }
+    function afterAddLiquidity(
+        address usr,
+        PoolKey calldata key,
+        IPoolManager.ModifyLiquidityParams calldata parm,
+        BalanceDelta delta,
+        bytes calldata data
+    ) external override returns (bytes4, BalanceDelta) {
+        return _afterAddLiquidity(usr, key, parm, delta, data);
+    }
 
     function beforeRemoveLiquidity(
         address usr,
@@ -80,5 +105,15 @@ abstract contract BaseClass is BaseHook {
         bytes calldata data
     ) external override returns (bytes4) {
         return _beforeRemoveLiquidity(usr, key, params, data);
+    }
+
+    function afterRemoveLiquidity(
+        address usr,
+        PoolKey calldata key,
+        IPoolManager.ModifyLiquidityParams calldata params,
+        BalanceDelta,
+        bytes calldata data
+    ) external override returns (bytes4, BalanceDelta) {
+        return _afterRemoveLiquidity(usr, key, params, data);
     }
 }
