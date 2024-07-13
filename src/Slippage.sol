@@ -35,6 +35,7 @@ contract Slippage is BaseClass {
     function getHookPermissions()
         public
         pure
+        virtual
         override
         returns (Hooks.Permissions memory)
     {
