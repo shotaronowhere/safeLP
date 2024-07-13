@@ -19,7 +19,6 @@ struct DeltaTokens {
     int256 token1;
 }
 
-
 contract Slippage is BaseClass {
     using BalanceDeltaLibrary for BalanceDelta;
 
@@ -60,7 +59,7 @@ contract Slippage is BaseClass {
 
     // trading operations
 
-    function _calcLiquidityCoef() internal returns (int256) {
+    function _calcLiquidityCoef() internal view returns (int256) {
         return 1e18;
     }
 
@@ -90,6 +89,22 @@ contract Slippage is BaseClass {
         bytes calldata data
     ) internal virtual override returns (bytes4, int128) {
         super._afterSwap(usr, key, params, delta, data);
+
+        int256 liquidityCoef = _calcLiquidityCoef();
+
+        int256 amount0 = delta.amount0();
+        int256 amount1 = delta.amount1();
+
+        int256 amount0Deflated = (amount0 * liquidityCoef) / PRECISION;
+        int256 amount1Deflated = (amount1 * liquidityCoef) / PRECISION;
+
+        int256 amount0Delta = amount0 - amount0Deflated;
+        int256 amount1Delta = amount1 - amount1Deflated;
+
+        BalanceDelta newDelta = toBalanceDelta(
+            int128(amount0),
+            int128(amount1)
+        );
 
         return (BaseHook.afterSwap.selector, 0);
     }
