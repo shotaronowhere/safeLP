@@ -101,12 +101,12 @@ contract Slippage is BaseClass {
         int256 amount0Delta = amount0 - amount0Deflated;
         int256 amount1Delta = amount1 - amount1Deflated;
 
-        BalanceDelta newDelta = toBalanceDelta(
+        int256 newDelta = BalanceDelta.unwrap(toBalanceDelta(
             int128(amount0),
             int128(amount1)
-        );
+        ));
 
-        return (BaseHook.afterSwap.selector, newDelta);
+        return (BaseHook.afterSwap.selector, int128(newDelta));
     }
 
     // Liquidity Operations
