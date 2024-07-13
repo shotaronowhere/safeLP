@@ -106,7 +106,7 @@ contract Slippage is BaseClass {
             int128(amount1)
         );
 
-        return (BaseHook.afterSwap.selector, 0);
+        return (BaseHook.afterSwap.selector, newDelta);
     }
 
     // Liquidity Operations
