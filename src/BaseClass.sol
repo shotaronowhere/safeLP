@@ -11,8 +11,9 @@ import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
 
 abstract contract BaseClass is BaseHook {
-
-    /**************** INTERNALS - Your logic comes here **********************/
+    /**
+     * INTERNALS - Your logic comes here *********************
+     */
     function _beforeSwap(
         address usr,
         PoolKey calldata key,
@@ -42,14 +43,14 @@ abstract contract BaseClass is BaseHook {
         bytes calldata data
     ) internal virtual returns (bytes4) {}
 
-
-    /**************** INTERFACES - DO NOT CHANGE **********************/
-    function beforeSwap(
-        address usr,
-        PoolKey calldata key,
-        IPoolManager.SwapParams calldata params,
-        bytes calldata data
-    ) external override returns (bytes4, BeforeSwapDelta, uint24) {
+    /**
+     * INTERFACES - DO NOT CHANGE *********************
+     */
+    function beforeSwap(address usr, PoolKey calldata key, IPoolManager.SwapParams calldata params, bytes calldata data)
+        external
+        override
+        returns (bytes4, BeforeSwapDelta, uint24)
+    {
         _beforeSwap(usr, key, params, data);
     }
 
@@ -80,5 +81,4 @@ abstract contract BaseClass is BaseHook {
     ) external override returns (bytes4) {
         _beforeRemoveLiquidity(usr, key, params, data);
     }
-
 }
