@@ -64,8 +64,9 @@ contract Slippage is BaseClass {
     ) internal virtual override returns (bytes4, BeforeSwapDelta, uint24) {
         super._beforeSwap(usr, key, params, data);
         uint256 liquidityCoef = _calcLiquidityCoef();
-        uint256 specifiedDelta = params.amountSpecified * liquidityCoef;
-        uint256 BeforeSwapDelta = BeforeSwapDeltaLibrary.toBeforeSwapDelta();
+        uint256 specifiedDelta = params.amountSpecified * liquidityCoef
+        uint256 unspecifiedDelta =
+        uint256 BeforeSwapDelta = toBeforeSwapDelta(specifiedDelta, 0);
         params.amountSpecified = params.amountSpecified * liquidityCoef;
         return (
             BaseHook.beforeSwap.selector,
@@ -82,7 +83,6 @@ contract Slippage is BaseClass {
         bytes calldata data
     ) internal virtual override returns (bytes4, int128) {
         super._afterSwap(usr, key, params, delta, data);
-         
 
         return (BaseHook.afterSwap.selector, 0);
     }
@@ -111,9 +111,6 @@ contract Slippage is BaseClass {
         return BaseHook.beforeAddLiquidity.selector;
     }
 
-
-
-
     function _afterRemoveLiquidity(
         address usr,
         PoolKey calldata key,
@@ -126,13 +123,13 @@ contract Slippage is BaseClass {
 
         BalanceDelta delta = BalanceDelta.wrap(params);
 
-        int256 amount0 = delta.amount0() + userDelta[usr].amount0 - globalDelta.amount0;
-        int256 amount1 = delta.amount1() + userDelta[usr].amount1 - globalDelta.amount1;
-
+        int256 amount0 = delta.amount0() +
+            userDelta[usr].amount0 -
+            globalDelta.amount0;
+        int256 amount1 = delta.amount1() +
+            userDelta[usr].amount1 -
+            globalDelta.amount1;
 
         return BaseHook.beforeRemoveLiquidity.selector;
-
     }
-
-
 }
