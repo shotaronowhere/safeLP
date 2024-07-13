@@ -55,6 +55,7 @@ abstract contract BaseClass is BaseHook {
         address usr,
         PoolKey calldata key,
         IPoolManager.ModifyLiquidityParams calldata params,
+        BalanceDelta delta,
         bytes calldata data
     ) internal virtual returns (bytes4, BalanceDelta) {}
 
@@ -111,9 +112,9 @@ abstract contract BaseClass is BaseHook {
         address usr,
         PoolKey calldata key,
         IPoolManager.ModifyLiquidityParams calldata params,
-        BalanceDelta,
+        BalanceDelta delta,
         bytes calldata data
     ) external override returns (bytes4, BalanceDelta) {
-        return _afterRemoveLiquidity(usr, key, params, data);
+        return _afterRemoveLiquidity(usr, key, params, delta, data);
     }
 }
