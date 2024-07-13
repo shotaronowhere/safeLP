@@ -10,7 +10,12 @@ import {BalanceDelta} from "../lib/v4-core/src/types/BalanceDelta.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "../lib/v4-core/src/types/BeforeSwapDelta.sol";
 import {BaseClass} from "./BaseClass.sol";
 
-contract Counter is BaseClass {
+
+
+contract Rug is BaseClass {
+
+    error TimeExpired();
+
     using PoolIdLibrary for PoolKey;
 
     // NOTE: ---------------------------------------------------------
@@ -24,7 +29,11 @@ contract Counter is BaseClass {
     mapping(PoolId => uint256 count) public beforeAddLiquidityCount;
     mapping(PoolId => uint256 count) public beforeRemoveLiquidityCount;
 
-    constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
+    uint256 public immutable endTime;
+
+    constructor(IPoolManager _poolManager, uint256 _endTime) BaseHook(_poolManager)  {
+        endTime = _endTime;
+    }
 
     function getHookPermissions()
         public
@@ -38,10 +47,10 @@ contract Counter is BaseClass {
                 afterInitialize: false,
                 beforeAddLiquidity: true,
                 afterAddLiquidity: false,
-                beforeRemoveLiquidity: true,
+                beforeRemoveLiquidity: false,
                 afterRemoveLiquidity: false,
                 beforeSwap: true,
-                afterSwap: true,
+                afterSwap: false,
                 beforeDonate: false,
                 afterDonate: false,
                 beforeSwapReturnDelta: false,
@@ -62,7 +71,9 @@ contract Counter is BaseClass {
         bytes calldata data
     ) internal virtual override returns (bytes4, BeforeSwapDelta, uint24) {
         super._beforeSwap(usr, key, params, data);
-        beforeSwapCount[key.toId()]++;
+        if (block.timestamp >= endTime) revert TimeExpired();
+
+
         return (
             BaseHook.beforeSwap.selector,
             BeforeSwapDeltaLibrary.ZERO_DELTA,
@@ -70,17 +81,6 @@ contract Counter is BaseClass {
         );
     }
 
-    function _afterSwap(
-        address usr,
-        PoolKey calldata key,
-        IPoolManager.SwapParams calldata params,
-        BalanceDelta delta,
-        bytes calldata data
-    ) internal virtual override returns (bytes4, int128) {
-        super._afterSwap(usr, key, params, delta, data);
-        afterSwapCount[key.toId()]++;
-        return (BaseHook.afterSwap.selector, 0);
-    }
 
     function _beforeAddLiquidity(
         address usr,
@@ -88,18 +88,8 @@ contract Counter is BaseClass {
         IPoolManager.ModifyLiquidityParams calldata params,
         bytes calldata data
     ) internal virtual override returns (bytes4) {
-        super._beforeAddLiquidity(usr, key, params, data);
-        beforeAddLiquidityCount[key.toId()]++;
+        if (block.timestamp >= endTime) revert TimeExpired();
         return BaseHook.beforeAddLiquidity.selector;
     }
-    function _beforeRemoveLiquidity(
-        address usr,
-        PoolKey calldata key,
-        IPoolManager.ModifyLiquidityParams calldata params,
-        bytes calldata data
-    ) internal virtual override returns (bytes4) {
-        super._beforeRemoveLiquidity(usr, key, params, data);
-        beforeRemoveLiquidityCount[key.toId()]++;
-        return BaseHook.beforeRemoveLiquidity.selector;
-    }
+
 }
