@@ -91,23 +91,28 @@ contract Slippage is BaseClass {
     ) internal virtual override returns (bytes4, int128) {
         super._afterSwap(usr, key, params, delta, data);
 
-        int256 liquidityCoef = _calcLiquidityCoef();
+        (int256 amount0Deflated, int256 amount1Deflated) = _deflateAmounts(
+            delta.amount0(),
+            delta.amount1()
+        );
+        int256 amount0Delta = amount0 - amount0Deflated;
+        int256 amount1Delta = amount1 - amount1Deflated;
 
-        int256 amount0 = delta.amount0();
-        int256 amount1 = delta.amount1();
+        poolManager.settle(outbound);
+
+        return (BaseHook.afterSwap.selector, int128(amount1Delta));
+    }
+
+    function _deflateAmounts(
+        int256 amount0,
+        int256 amount1
+    ) internal pure returns (int256, int256) {
+        int256 liquidityCoef = _calcLiquidityCoef();
 
         int256 amount0Deflated = (amount0 * liquidityCoef) / PRECISION;
         int256 amount1Deflated = (amount1 * liquidityCoef) / PRECISION;
 
-        int256 amount0Delta = amount0 - amount0Deflated;
-        int256 amount1Delta = amount1 - amount1Deflated;
-
-        int256 newDelta = BalanceDelta.unwrap(toBalanceDelta(
-            int128(amount0),
-            int128(amount1)
-        ));
-
-        return (BaseHook.afterSwap.selector, int128(newDelta));
+        return (amount0Deflated, amount1Deflated);
     }
 
     // Liquidity Operations
