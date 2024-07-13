@@ -94,7 +94,7 @@ contract Slippage is BaseClass {
         bytes calldata data
     ) internal virtual override returns (bytes4, BeforeSwapDelta, uint24) {
         super._beforeSwap(usr, key, params, data);
-        int256 price = 100;
+        int256 price = 5e17;
         int256 liquidityCoef = _calcLiquidityCoef(price);
         int256 specifiedDelta = params.amountSpecified * liquidityCoef;
         BeforeSwapDelta beforeSwapDelta = toBeforeSwapDelta(
