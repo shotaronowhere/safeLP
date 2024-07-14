@@ -24,7 +24,7 @@ As a result, popular prediction market protocols like Polymarket are forced to r
 
 Consequently, even the most popular Polymarket prediction markets often have very low depth despite having hundreds of millions in Total Value Locked (TVL). This degrades the trading experience for users due to unnecessary price impact.
 
-### Our Solution: Custom v4 AMM Hooks
+## Our Solution: Custom v4 AMM Hooks
 
 We address these challenges by developing a suite of custom v4 AMM hooks, each designed to mitigate either Impermanent Loss (IL) or Loss Versus Rebalancing (LVR) using novel techniques and heuristics.
 
