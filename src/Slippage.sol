@@ -92,6 +92,14 @@ contract Slippage is BaseClass {
     function abs(int256 x) internal pure returns (int256) {
         return x >= 0 ? x : -x;
     }
+    function convertSqrtPriceX96ToPrice(
+        uint160 sqrtPriceX96
+    ) internal pure returns (int256) {
+        uint256 Q96 = 2 ** 96;
+        uint256 priceX192 = uint256(sqrtPriceX96) * uint256(sqrtPriceX96);
+        uint256 price = (priceX192 * 1e18) / (Q96 * Q96);
+        return int256(price);
+    }
 
     function _beforeSwap(
         address usr,
@@ -100,15 +108,16 @@ contract Slippage is BaseClass {
         bytes calldata data
     ) internal virtual override returns (bytes4, BeforeSwapDelta, uint24) {
         super._beforeSwap(usr, key, params, data);
-        int256 price = 5e17;
+        int256 price = convertSqrtPriceX96ToPrice(params.sqrtPriceLimitX96);
         int256 liquidityCoef = _calcLiquidityCoef(price);
-        int256 specifiedDelta = params.amountSpecified * PRECISION / liquidityCoef;
+        int256 specifiedDelta = (params.amountSpecified * PRECISION) /
+            liquidityCoef;
         BeforeSwapDelta beforeSwapDelta = toBeforeSwapDelta(
             int128(specifiedDelta),
             0
         );
 
-        int256 scaledFee = int256(uint256(key.fee)) * 1e18 / liquidityCoef;
+        int256 scaledFee = (int256(uint256(key.fee)) * 1e18) / liquidityCoef;
         require(scaledFee < int256(uint256(type(uint24).max)), "overflow");
         // uint256 BeforeSwapDelta = BeforeSwapDeltaLibrary.toBeforeSwapDelta();
         // params.amountSpecified = params.amountSpecified * liquidityCoef;
@@ -141,10 +150,11 @@ contract Slippage is BaseClass {
                 delta.amount0(),
                 delta.amount1()
             );
-
+            int256 price = convertSqrtPriceX96ToPrice(params.sqrtPriceLimitX96);
             (int256 amount0Deflated, int256 amount1Deflated) = _deflateAmounts(
                 amount0,
-                amount1
+                amount1,
+                price
             );
             amount0Delta = amount0 - amount0Deflated;
             amount1Delta = amount1 - amount1Deflated;
@@ -157,9 +167,9 @@ contract Slippage is BaseClass {
 
     function _deflateAmounts(
         int256 amount0,
-        int256 amount1
+        int256 amount1,
+        int256 price
     ) internal view returns (int256, int256) {
-        int256 price = 5e17;
         int256 liquidityCoef = _calcLiquidityCoef(price);
 
         int256 amount0Deflated = (amount0 * PRECISION) * liquidityCoef;
@@ -203,12 +213,10 @@ contract Slippage is BaseClass {
 
         // remove token amounts
         int256 amount0 = int256(delta.amount0()) +
-            ((userDelta[usr].token0 - globalDelta.token0) *
-                liquidityRemoved) /
+            ((userDelta[usr].token0 - globalDelta.token0) * liquidityRemoved) /
             PRECISION;
         int256 amount1 = int256(delta.amount1()) +
-            ((userDelta[usr].token1 - globalDelta.token1) *
-                liquidityRemoved) /
+            ((userDelta[usr].token1 - globalDelta.token1) * liquidityRemoved) /
             PRECISION;
         BalanceDelta newDelta = toBalanceDelta(
             int128(amount0),
