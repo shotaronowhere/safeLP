@@ -211,5 +211,12 @@ contract AuctionHook is BaseHook {
     function expirationTime() internal returns (uint64) {
         return uint64(block.timestamp + TIMEOUT);
     }
+
+    function winner(uint64 id) external returns (address) {
+        Auction memory auction = auctions[id];
+        require(auction.expiry != 0, "Auction does not exist");
+        require(isExpired(auction.expiry), "Auction is not over");
+        return auction.winner;
+    } 
 }
 

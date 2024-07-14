@@ -62,7 +62,7 @@ contract AuctionTest is Test, Deployers {
         assertEq(hook.isZeroUnderlying(), isZeroUnderlying, "Wrong isZeroUnderlying");
     }
 
-    function testTrading() public {
+    function testAuctionTimeout() public {
         // Perform a test swap //
         bool zeroForOne = true;
         int256 amountSpecified = -1e18; // negative number indicates exact input swap!
@@ -75,7 +75,21 @@ contract AuctionTest is Test, Deployers {
             ZERO_BYTES
         );
 
-        (,,,,,,uint64 expiry,) = hook.auctions(0);
+        // id is a counter of number of auctions
+        uint256 auctionId = 0;
+
+        (,,,,,address winner,uint64 expiry,) = hook.auctions(0);
         assertEq(expiry, block.timestamp + hook.TIMEOUT());
+
+        vm.warp(block.timestamp + hook.TIMEOUT());
+
+        vm.expectRevert();
+        hook.winner(0);
+
+        vm.warp(block.timestamp + 1);
+
+        // won auction via timeout
+        address _winner = hook.winner(0);
+        assertEq(_winner, winner);
     }
 }
