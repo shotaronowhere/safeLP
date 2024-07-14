@@ -77,3 +77,5 @@ In order to do this, we needed to also account for LP balances changing less tha
 We have also implemented forge tests to verify our hook contract is functioning as expected.
 
 The auction mechanism for the LVR-mitigation hook works by keeping track of the highest bidder so far in the auction-window, and refunding the last highest bidder their bid amount as soon as they are out-bid. This way, it is capital efficient, simple and doesn't impose additional delays on or create ambiguity for traders as other auctions such as second-price or blind auctions would.
+
+All tests can be executed with the command `forge test`
