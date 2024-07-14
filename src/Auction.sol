@@ -36,7 +36,7 @@ contract AuctionHook is BaseHook {
 
     event AuctionBid(uint256 id, Auction auction);
     
-    bool immutable isZeroUnderlying; // true if currency0 is the underlying collateral eg $DAI
+    bool public immutable isZeroUnderlying; // true if currency0 is the underlying collateral eg $DAI $ETH
 
     uint256 public constant TIMEOUT = 60 * 60; // 1 hour
     uint256 public constant MIN_BID_IN_BASIS = 100; // 1%
@@ -44,7 +44,7 @@ contract AuctionHook is BaseHook {
 
     uint256 public count;
     address public owner;
-    mapping(uint256 => Auction) auctions; 
+    mapping(uint256 => Auction) public auctions; 
 
     constructor(IPoolManager _poolManager, bool _isZeroUnderlying) BaseHook(_poolManager) {
         isZeroUnderlying = _isZeroUnderlying;
@@ -108,10 +108,6 @@ contract AuctionHook is BaseHook {
 
         (Currency currencyUnspecified, int128 amountUnspecified) =
             (params.zeroForOne) ? (key.currency1, delta.amount1()) : (key.currency0, delta.amount0());
-
-        // exactInput swap, get the absolute output amount
-
-        amountUnspecified = -amountUnspecified;
 
         poolManager.take(currencyUnspecified, address(this), uint256(uint128(amountUnspecified)));
 
